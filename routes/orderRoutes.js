@@ -70,20 +70,15 @@ router.post('/place', protect, async (req, res) => {
 });
 
 // ✅ GET /myorders (specific user orders)
-
-
 router.get('/myorders', protect, async (req, res) => {
   try {
-    // ✅ Use 'new' to cast user ID safely
     const orders = await Order.find({ user: new mongoose.Types.ObjectId(req.user.id) });
-
     res.status(200).json(orders);
   } catch (error) {
     console.error(error);
     res.status(500).json({ msg: 'Server error', error: error.message });
   }
 });
-
 
 // ✅ PUT /cancel/:id (Quick Fix → any logged-in user can cancel)
 router.put('/cancel/:id', protect, async (req, res) => {
@@ -95,6 +90,25 @@ router.put('/cancel/:id', protect, async (req, res) => {
     }
 
     order.status = 'canceled';
+    await order.save();
+
+    res.json(order);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: 'Server error', error: error.message });
+  }
+});
+
+// ✅ PUT /deliver/:id (mark as delivered)
+router.put('/deliver/:id', protect, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ msg: 'Order not found' });
+    }
+
+    order.status = 'delivered';
     await order.save();
 
     res.json(order);
