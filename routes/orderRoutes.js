@@ -17,27 +17,21 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// ✅ POST order (simple)
-router.post('/', protect, async (req, res) => {
+// ✅ GET /myorders (specific user orders)
+router.get('/myorders', protect, async (req, res) => {
   try {
-    const { items, total } = req.body;
-    const order = new Order({
-      user: req.user.id,
-      items,
-      total,
-    });
-    const savedOrder = await order.save();
-    res.status(201).json(savedOrder);
+    const orders = await Order.find({ user: new mongoose.Types.ObjectId(req.user.id) });
+    res.status(200).json(orders);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ msg: 'Server error', error: error.message });
   }
 });
 
-// ✅ POST /place (with food validation)
+// ✅ POST /place (with full order details)
 router.post('/place', protect, async (req, res) => {
   try {
-    const { items, total } = req.body;
+    const { items, total, extraAmount, coupon, deliveryAddress, paymentMethod } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ msg: 'No items in order' });
@@ -57,7 +51,12 @@ router.post('/place', protect, async (req, res) => {
     const order = new Order({
       user: req.user.id,
       items: processedItems,
-      total
+      total: total + (extraAmount || 0),
+      extraAmount: extraAmount || 0,
+      coupon: coupon || null,
+      deliveryAddress: deliveryAddress || '',
+      paymentMethod: paymentMethod || 'COD',
+      status: 'pending'
     });
 
     const savedOrder = await order.save();
@@ -69,25 +68,12 @@ router.post('/place', protect, async (req, res) => {
   }
 });
 
-// ✅ GET /myorders (specific user orders)
-router.get('/myorders', protect, async (req, res) => {
-  try {
-    const orders = await Order.find({ user: new mongoose.Types.ObjectId(req.user.id) });
-    res.status(200).json(orders);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ msg: 'Server error', error: error.message });
-  }
-});
-
-// ✅ PUT /cancel/:id (Quick Fix → any logged-in user can cancel)
+// ✅ PUT /cancel/:id → Cancel order
 router.put('/cancel/:id', protect, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
 
-    if (!order) {
-      return res.status(404).json({ msg: 'Order not found' });
-    }
+    if (!order) return res.status(404).json({ msg: 'Order not found' });
 
     order.status = 'canceled';
     await order.save();
@@ -99,14 +85,12 @@ router.put('/cancel/:id', protect, async (req, res) => {
   }
 });
 
-// ✅ PUT /deliver/:id (mark as delivered)
+// ✅ PUT /deliver/:id → Mark as delivered
 router.put('/deliver/:id', protect, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
 
-    if (!order) {
-      return res.status(404).json({ msg: 'Order not found' });
-    }
+    if (!order) return res.status(404).json({ msg: 'Order not found' });
 
     order.status = 'delivered';
     await order.save();
