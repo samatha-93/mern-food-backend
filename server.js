@@ -1,6 +1,8 @@
 // backend/server.js
 require('dotenv').config();
 const express = require('express');
+const http = require("http");
+
 const connectDB = require('./config/db');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
