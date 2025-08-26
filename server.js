@@ -26,5 +26,27 @@ app.use('/api/orders', orderRoutes);
 // Basic health check
 app.get('/', (req, res) => res.send('API running'));
 
+// ---- SOCKET.IO ----
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: '*' } });
+
+io.on('connection', (socket) => {
+  console.log('New client connected: ' + socket.id);
+
+  socket.on('join_room', (room) => {
+    socket.join(room);
+    console.log(`Socket ${socket.id} joined room ${room}`);
+  });
+
+  socket.on('send_message', (data) => {
+    io.to(data.to).emit('receive_message', data);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected: ' + socket.id);
+  });
+});
+
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started on ${PORT}`));
