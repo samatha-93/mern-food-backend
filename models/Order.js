@@ -1,42 +1,35 @@
-import { createContext, useState } from "react";
+const mongoose = require("mongoose");
 
-export const CartContext = createContext();
+const orderSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    items: [
+      {
+        food: { type: mongoose.Schema.Types.ObjectId, ref: "Food", required: true },
+        name: { type: String, required: true },
+        qty: { type: Number, required: true },
+        price: { type: Number, required: true },
+      },
+    ],
+    total: { type: Number, required: true },
+    coupon: { type: String },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "card"], // lowercase
+      required: true,
+    },
+    deliveryAddress: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ["placed", "preparing", "out for delivery", "delivered", "canceled"],
+      default: "placed",
+    },
+  },
+  { timestamps: true }
+);
 
-export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([]);
-
-  const addToCart = (item) => {
-    const exist = cartItems.find(i => i.food === item._id);
-    if (exist) {
-      setCartItems(cartItems.map(i => 
-        i.food === item._id ? { ...i, qty: i.qty + 1 } : i
-      ));
-    } else {
-      setCartItems([...cartItems, { ...item, qty: 1, food: item._id }]);
-    }
-  };
-
-  const increaseQty = (id) => {
-    setCartItems(cartItems.map(i =>
-      i.food === id ? { ...i, qty: i.qty + 1 } : i
-    ));
-  };
-
-  const decreaseQty = (id) => {
-    setCartItems(cartItems.map(i =>
-      i.food === id ? { ...i, qty: i.qty > 1 ? i.qty - 1 : 1 } : i
-    ));
-  };
-
-  const removeItem = (id) => {
-    setCartItems(cartItems.filter(i => i.food !== id));
-  };
-
-  const clearCart = () => setCartItems([]);
-
-  return (
-    <CartContext.Provider value={{ cartItems, addToCart, increaseQty, decreaseQty, removeItem, clearCart }}>
-      {children}
-    </CartContext.Provider>
-  );
-};
+module.exports = mongoose.model("Order", orderSchema);
