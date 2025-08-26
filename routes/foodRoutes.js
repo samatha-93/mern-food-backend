@@ -9,13 +9,17 @@ const { protect } = require("../middleware/authMiddleware");
 const Food = require("../models/Food");
 
 // @route   GET /api/foods
+// @desc    Get all foods
+// @access  Public
 router.get("/", getFoods);
 
 // @route   GET /api/foods/:id
+// @desc    Get single food
+// @access  Public
 router.get("/:id", getFoodById);
 
 // @route   POST /api/foods
-// @desc    Add new food (admin only)
+// @desc    Add food (admin)
 // @access  Private
 router.post("/", protect, addFood);
 
