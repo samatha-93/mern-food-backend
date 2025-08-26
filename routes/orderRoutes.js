@@ -53,5 +53,28 @@ router.post('/place', protect, async (req, res) => {
     res.status(500).json({ msg: 'Server error', error: error.message });
   }
 });
+// Cancel an order (user only)
+router.patch("/:id/cancel", protect, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) return res.status(404).json({ msg: "Order not found" });
+
+    // Only the user who placed the order can cancel
+    if (order.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ msg: "Not authorized to cancel this order" });
+    }
+
+    // Update status
+    order.status = "canceled";
+    await order.save();
+
+    res.json({ msg: "Order canceled successfully", order });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+});
+
 
 module.exports = router;
