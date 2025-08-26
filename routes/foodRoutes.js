@@ -1,16 +1,28 @@
 // backend/routes/foodRoutes.js
-const router = require('express').Router();
-const { getFoods, addFood, getFoodById } = require('../controllers/foodController');
-const { protect } = require('../middleware/authMiddleware');
+const router = require("express").Router();
+const {
+  getFoods,
+  addFood,
+  getFoodById,
+} = require("../controllers/foodController");
+const { protect } = require("../middleware/authMiddleware");
+const Food = require("../models/Food");
 
-router.get('/', getFoods);
-router.get('/:id', getFoodById);
-router.post('/', protect, addFood); // protect addFood (admin)
-module.exports = router;
+// @route   GET /api/foods
+router.get("/", getFoods);
+
+// @route   GET /api/foods/:id
+router.get("/:id", getFoodById);
+
+// @route   POST /api/foods
+// @desc    Add new food (admin only)
+// @access  Private
+router.post("/", protect, addFood);
+
 // @route   POST /api/foods/:id/reviews
 // @desc    Add a review to food
 // @access  Private
-router.post("/:id/reviews", authMiddleware, async (req, res) => {
+router.post("/:id/reviews", protect, async (req, res) => {
   try {
     const { rating, comment } = req.body;
     const food = await Food.findById(req.params.id);
@@ -19,7 +31,6 @@ router.post("/:id/reviews", authMiddleware, async (req, res) => {
 
     const review = {
       user: req.user.id,
-      name: req.user.name,
       rating: Number(rating),
       comment,
     };
@@ -29,6 +40,7 @@ router.post("/:id/reviews", authMiddleware, async (req, res) => {
 
     res.json({ msg: "Review added successfully" });
   } catch (err) {
+    console.error("Review error:", err.message);
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 });
@@ -38,10 +50,18 @@ router.post("/:id/reviews", authMiddleware, async (req, res) => {
 // @access  Public
 router.get("/:id/reviews", async (req, res) => {
   try {
-    const food = await Food.findById(req.params.id).populate("reviews.user", "name");
+    const food = await Food.findById(req.params.id).populate(
+      "reviews.user",
+      "name"
+    );
+
     if (!food) return res.status(404).json({ msg: "Food not found" });
+
     res.json(food.reviews);
   } catch (err) {
+    console.error("Get reviews error:", err.message);
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 });
+
+module.exports = router;
